@@ -10,7 +10,12 @@
 //! and then no more bytes can be written.
 class ByteStream {
   private:
-    // Your code here -- add private members as necessary.
+    // Simple buffer implementation using std::string as a FIFO buffer.
+    size_t _capacity;               //!< maximum capacity of the stream
+    std::string _buffer;            //!< in-memory buffer holding the bytes
+    size_t _bytes_written{0};       //!< total bytes ever written
+    size_t _bytes_read{0};          //!< total bytes ever popped/read
+    bool _end_input{false};         //!< whether end_input() was called
 
     // Hint: This doesn't need to be a sophisticated data structure at
     // all, but if any of your tests are taking longer than a second,
