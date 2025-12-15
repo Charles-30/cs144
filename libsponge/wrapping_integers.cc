@@ -14,8 +14,9 @@ using namespace std;
 //! \param n The input absolute 64-bit sequence number
 //! \param isn The initial sequence number
 WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
-    DUMMY_CODE(n, isn);
-    return WrappingInt32{0};
+    // 将 64 位绝对序列号转换为 32 位（高位自动截断，相当于 mod 2^32）
+    // 然后加上初始序列号 ISN
+    return WrappingInt32{isn.raw_value() + static_cast<uint32_t>(n)};
 }
 
 //! Transform a WrappingInt32 into an "absolute" 64-bit sequence number (zero-indexed)
@@ -29,6 +30,22 @@ WrappingInt32 wrap(uint64_t n, WrappingInt32 isn) {
 //! and the other stream runs from the remote TCPSender to the local TCPReceiver and
 //! has a different ISN.
 uint64_t unwrap(WrappingInt32 n, WrappingInt32 isn, uint64_t checkpoint) {
-    DUMMY_CODE(n, isn, checkpoint);
-    return {};
+    // 1. 计算 checkpoint 对应的 WrappingInt32 值
+    WrappingInt32 ckpt_wrapped = wrap(checkpoint, isn);
+
+    // 2. 计算 n 与 ckpt_wrapped 之间的有符号距离 (int32_t)
+    // helper 函数 operator- 会自动处理环上的最短距离，结果范围在 [-2^31, 2^31-1]
+    int32_t diff = n - ckpt_wrapped;
+
+    // 3. 将距离加到绝对 checkpoint 上，得到理论上最近的绝对序列号
+    int64_t res = static_cast<int64_t>(checkpoint) + diff;
+
+    // 4. 边界处理：绝对序列号不能为负数
+    // 如果结果为负（说明 checkpoint 接近 0 且 n 在 checkpoint 的"左边"很远），
+    // 我们需要加上 2^32 (1ULL << 32) 来获取下一个合法的正数值
+    if (res < 0) {
+        return static_cast<uint64_t>(res + (1ULL << 32));
+    }
+
+    return static_cast<uint64_t>(res);
 }

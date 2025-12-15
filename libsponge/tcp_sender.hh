@@ -10,11 +10,6 @@
 #include <queue>
 
 //! \brief The "sender" part of a TCP implementation.
-
-//! Accepts a ByteStream, divides it up into segments and sends the
-//! segments, keeps track of which segments are still in-flight,
-//! maintains the Retransmission Timer, and retransmits in-flight
-//! segments if the retransmission timer expires.
 class TCPSender {
   private:
     //! our initial sequence number, the number for our SYN.
@@ -31,6 +26,26 @@ class TCPSender {
 
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
+
+    //! 最近收到的确认号 (绝对序列号)，即窗口左边缘
+    uint64_t _recv_ackno{0};
+
+    //! 接收方通告的窗口大小
+    uint16_t _current_window_size{1};
+
+    //! 正在飞行中(已发送未确认)的字节数
+    uint64_t _bytes_in_flight{0};
+
+    //! 连续重传计数器
+    unsigned int _consecutive_retransmissions{0};
+
+    //! 追踪未确认的数据段 (用于重传)
+    std::queue<TCPSegment> _outstanding_segments{};
+
+    //! 计时器相关状态
+    bool _timer_running{false};
+    unsigned int _timer_ms{0};     // 当前累积的时间
+    unsigned int _current_rto{0};  // 当前的超时阈值
 
   public:
     //! Initialize a TCPSender
@@ -64,17 +79,12 @@ class TCPSender {
     //!@{
 
     //! \brief How many sequence numbers are occupied by segments sent but not yet acknowledged?
-    //! \note count is in "sequence space," i.e. SYN and FIN each count for one byte
-    //! (see TCPSegment::length_in_sequence_space())
     size_t bytes_in_flight() const;
 
     //! \brief Number of consecutive retransmissions that have occurred in a row
     unsigned int consecutive_retransmissions() const;
 
     //! \brief TCPSegments that the TCPSender has enqueued for transmission.
-    //! \note These must be dequeued and sent by the TCPConnection,
-    //! which will need to fill in the fields that are set by the TCPReceiver
-    //! (ackno and window size) before sending.
     std::queue<TCPSegment> &segments_out() { return _segments_out; }
     //!@}
 
