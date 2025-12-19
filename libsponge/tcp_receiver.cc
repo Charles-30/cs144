@@ -10,7 +10,7 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 
 using namespace std;
 
-void TCPReceiver::segment_received(const TCPSegment &seg) {
+bool TCPReceiver::segment_received(const TCPSegment &seg) {
     const TCPHeader &header = seg.header();
 
     // 1. 判断当前是否为 Listen 状态 (未正式建立连接，需要 SYN 启动)
@@ -21,7 +21,7 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
             _isn = header.seqno;
         } else {
             // 否，则数据传输未开始，丢弃数据包
-            return;
+            return false;
         }
     }
 
@@ -46,6 +46,7 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
 
     // d. 调用 push_substring
     _reassembler.push_substring(seg.payload().copy(), stream_idx, header.fin);
+    return true;
 }
 
 optional<WrappingInt32> TCPReceiver::ackno() const { 

@@ -22,6 +22,14 @@ class TCPConnection {
     bool _linger_after_streams_finish{true};
     bool _is_active{true};
 
+    size_t _time_since_last_segment_received{0};
+
+    // 辅助函数：将 Sender 的段加上 Receiver 的 ACK 信息，并放入 _segments_out
+    void _trans_segments();
+    
+    // 辅助函数：检查是否应该彻底关闭连接
+    void _check_clean_shutdown();
+
   public:
     //! \name "Input" interface for the writer
     //!@{

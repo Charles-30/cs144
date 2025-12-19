@@ -1,4 +1,4 @@
-#include "socket.hh"
+#include "tcp_sponge_socket.hh"
 #include "util.hh"
 
 #include <cstdlib>
@@ -15,7 +15,7 @@ void get_URL(const string &host, const string &path) {
     Address server_address{host, "http"};
 
     // Create a TCP socket and connect
-    TCPSocket socket;
+    FullStackSocket socket;
     socket.connect(server_address);
 
     // Build an HTTP/1.1 GET request. Each line must end with \r\n.
@@ -38,6 +38,8 @@ void get_URL(const string &host, const string &path) {
 
     // Ensure output is flushed
     cout.flush();
+
+    socket.wait_until_closed();
 }
 
 int main(int argc, char *argv[]) {
